@@ -1,8 +1,5 @@
 import numpy as np
 import pandas as pd
-import qiskit as qi
-import qutip as Q
-import time
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.keras import models, layers, optimizers, losses, metrics, Input
@@ -13,52 +10,11 @@ SAMPLES = 500000
 
 ################################### 1 Data ###################################
 
-# Initialize arrays for entangled and separable states
-Entangled = np.empty([SAMPLES, 16], dtype=complex)
-Separable = np.empty([SAMPLES, 16], dtype=complex)
-
-# Initialize arrays for labels
-ent_label = np.empty([SAMPLES, 2], dtype=float)
-sep_label = np.empty([SAMPLES, 2], dtype=float)
-
 # Download from https://www.kaggle.com/datasets/alikookani/quantangle1
-data = pd.read_csv('/data/data.csv')
+data = pd.read_csv('data/data.csv')
 
 # Convert the DataFrame to a NumPy array for further processing
 data = np.array(data)
-
-# Start measuring execution time (It takes half an hour or so!)
-start = time.time()
-
-# Flags for determining each state's number
-i = 0
-j = 0
-
-while i < SAMPLES or j < SAMPLES:
-    Rho = Q.rand_dm(4, dims=[[2, 2], [2, 2]])
-    Density = np.array(Rho)
-    temp1 = qi.quantum_info.entanglement_of_formation(Density)
-
-    if temp1 == 0.0 and i < SAMPLES:
-        Separable[i, :16] = Density.reshape(1, 16)
-        sep_label[i, 0] = temp1
-        sep_label[i, 1] = np.linalg.det(Q.partial_transpose(Rho, [0, 1]).full()).real
-        i += 1
-    elif j < SAMPLES:
-        Entangled[j, :16] = Density.reshape(1, 16)
-        ent_label[j, 0] = temp1
-        ent_label[j, 1] = np.linalg.det(Q.partial_transpose(Rho, [0, 1]).full()).real
-        j += 1
-
-# End measuring execution time
-end = time.time()
-print("Execution time:", end - start)
-
-# Combine data and labels
-temp2 = np.concatenate((Separable, sep_label), axis=1)
-temp3 = np.concatenate((Entangled, ent_label), axis=1)
-data = np.concatenate((temp2, temp3), axis=0)
-del temp1, temp2, temp3
 
 # Separating real and imaginary values
 vector = np.empty([len(data), 32], dtype=float)
@@ -66,20 +22,17 @@ for i in range(len(data)):
     for j in range(16):
         vector[i, 2 * j] = complex(data[i, j]).real
         vector[i, 2 * j + 1] = complex(data[i, j]).imag
+
 # Reshaping to 3D tensors
-matrix = vector.reshape(len(data), 4, 8)
-tensor1 = matrix.reshape(len(data), 4, 4, 2)
+tensor = vector.reshape(len(data), 4, 4, 2)
 
 # Shuffle the dataset
-tensor2 = np.empty([len(data), 4, 4, 2], dtype=float)
-reg_label = np.empty([len(data)], dtype=float)
+tensor_shuffled = np.empty([len(data), 4, 4, 2], dtype=float)
 class_label = np.ones(len(data)).astype('int')
 for i in range(SAMPLES):
-    tensor2[2 * i, :, :, :] = tensor1[i, :, :, :]
-    reg_label[2 * i] = complex(data[i, 17]).real
+    tensor_shuffled[2 * i, :, :, :] = tensor[i, :, :, :]
+    tensor_shuffled[2 * i + 1, :, :, :] = tensor[i + SAMPLES, :, :, :]
     class_label[2 * i] = 0
-    tensor2[2 * i + 1, :, :, :] = tensor1[i + SAMPLES, :, :, :]
-    reg_label[2 * i + 1] = complex(data[i + SAMPLES, 17]).real
 
 ################################### 2 Model ###################################
 
@@ -124,14 +77,12 @@ model = models.Model(input_tensor, top3)
 
 model.summary()
 
-plot_model(model, show_shapes=True, to_file='model.png')
-
 ################################### 2 Training ###################################
 
 # Compile the model
 callback_list = [
                  tf.keras.callbacks.ModelCheckpoint(
-                     filepath = 'my_model.h5',
+                     filepath = 'my_model.keras',
                      monitor = 'val_loss',
                      save_best_only = True,
                  )
@@ -142,25 +93,21 @@ model.compile(
         learning_rate = 0.01, momentum = 0.9,
     ),
     loss = {
-#        'regression': losses.mse,
         'classification': losses.binary_crossentropy
         },
     metrics = {
-#        'regression': metrics.mae,
         'classification': metrics.binary_accuracy
         }
 )
 
 history1 = model.fit(
-    tensor2[:len(data)-20000, :, :, :],
-    {#'regression': reg_label[:len(data)-20000],
-     'classification': class_label[:len(data)-20000]},
+    tensor_shuffled[:len(data)-20000, :, :, :],
+    {'classification': class_label[:len(data)-20000]},
     batch_size = 125,
     epochs = 8,
     callbacks = callback_list,
-    validation_data = (tensor2[len(data)-20000:len(data)-10000, :, :, :],
-                     {#'regression': reg_label[len(data)-20000:len(data)-10000],
-                      'classification': class_label[len(data)-20000:len(data)-10000]}
+    validation_data = (tensor_shuffled[len(data)-20000:len(data)-10000, :, :, :],
+                     {'classification': class_label[len(data)-20000:len(data)-10000]}
                      ),
 )
 
@@ -170,25 +117,21 @@ model.compile(
         learning_rate=0.001, momentum=0.9,
     ),
     loss = {
-#        'regression': losses.mse,
         'classification': losses.binary_crossentropy
         },
     metrics = {
-#        'regression': metrics.mae,
         'classification': metrics.binary_accuracy
         }
 )
 
 history2 = model.fit(
-    tensor2[:len(data)-20000, :, :, :],
-    {#'regression': reg_label[:len(data)-20000],
-     'classification': class_label[:len(data)-20000]},
+    tensor_shuffled[:len(data)-20000, :, :, :],
+    {'classification': class_label[:len(data)-20000]},
     batch_size = 125,
     epochs = 4,
     callbacks = callback_list,
-    validation_data = (tensor2[len(data)-20000:len(data)-10000, :, :, :],
-                     {#'regression': reg_label[len(data)-20000:len(data)-10000],
-                      'classification': class_label[len(data)-20000:len(data)-10000]}
+    validation_data = (tensor_shuffled[len(data)-20000:len(data)-10000, :, :, :],
+                     {'classification': class_label[len(data)-20000:len(data)-10000]}
                      ),
 )
 
@@ -198,40 +141,35 @@ model.compile(
         learning_rate=0.0001, momentum=0.9,
     ),
     loss = {
-#        'regression': losses.mse,
         'classification': losses.binary_crossentropy
         },
     metrics = {
-#        'regression': metrics.mae,
         'classification': metrics.binary_accuracy
         }
 )
 
 history3 = model.fit(
-    tensor2[:len(data)-20000, :, :, :],
-    {#'regression': reg_label[:len(data)-20000],
-     'classification': class_label[:len(data)-20000]},
+    tensor_shuffled[:len(data)-20000, :, :, :],
+    {'classification': class_label[:len(data)-20000]},
     batch_size = 125,
     epochs = 2,
     callbacks = callback_list,
-    validation_data = (tensor2[len(data)-20000:len(data)-10000, :, :, :],
-                     {#'regression': reg_label[len(data)-20000:len(data)-10000],
-                      'classification': class_label[len(data)-20000:len(data)-10000]}
+    validation_data = (tensor_shuffled[len(data)-20000:len(data)-10000, :, :, :],
+                     {'classification': class_label[len(data)-20000:len(data)-10000]}
                      ),
 )
 
 ################################### 3 Evaluation ###################################
 
 # Load the best saved model
-my_model = tf.keras.models.load_model("my_model.h5")
+my_model = tf.keras.models.load_model("my_model.keras")
 
 # Evaluate the model using TensorFlow/Keras metrics
-my_model.evaluate(tensor2[len(data)-10000:len(data), :, :, :], {#'regression': reg_label[len(data)-10000:len(data)],
-                                                     'classification': class_label[len(data)-10000:len(data)]})
+my_model.evaluate(tensor_shuffled[len(data)-10000:len(data), :, :, :], {'classification': class_label[len(data)-10000:len(data)]})
 
 # Make predictions and create a confusion matrix
 actual = class_label[990000:1000000]
-seq_predictions = my_model.predict(tensor2[990000:1000000, :, :])
+seq_predictions = my_model.predict(tensor_shuffled[990000:1000000, :, :])
 seq_predictions = np.transpose(seq_predictions)[0]
 seq_predictions = list(map(lambda x: 0 if x < 0.5 else 1, seq_predictions))
 
