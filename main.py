@@ -13,7 +13,7 @@ N_TESTING = 10000
 ################################### 1 Data ###################################
 
 # Download from https://www.kaggle.com/datasets/alikookani/quantangle1
-data = pd.read_csv('data/data.csv')
+data = pd.read_csv(r'C:\Users\natan\XSpookyNat\data\data.csv')
 
 # Convert the DataFrame to a NumPy array for further processing
 data = np.array(data)
@@ -154,7 +154,7 @@ model.compile(
 
 history = model.fit(
     tensor_shuffled[:len(data)-N_VALIDATION-N_TESTING, :, :, :],
-    {'classification': class_label[:len(data)-N_VALIDATION-N_TESTING]},
+    class_label[:len(data)-N_VALIDATION-N_TESTING],
     batch_size=125,
     epochs=20,
     callbacks=callback_list,
@@ -170,7 +170,7 @@ history = model.fit(
 my_model = tf.keras.models.load_model("my_model.keras")
 
 # Evaluate the model using TensorFlow/Keras metrics
-my_model.evaluate(tensor_shuffled[len(data)-N_TESTING:len(data), :, :, :], {'classification': class_label[len(data)-N_TESTING:len(data)]})
+my_model.evaluate(tensor_shuffled[len(data)-N_TESTING:len(data), :, :, :], class_label[len(data)-N_TESTING:len(data)])
 
 # Make predictions and create a confusion matrix
 actual = class_label[len(data)-N_TESTING:len(data)]
