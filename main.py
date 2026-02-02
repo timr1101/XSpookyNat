@@ -109,10 +109,12 @@ layer10 = layers.LeakyReLU()(layer10)
 
 # Top / Output
 top1 = layers.Flatten()(layer10)
+top1 = layers.Dropout(0.4)(top1)
 top1 = layers.Dense(512)(top1)
 #top1 = layers.BatchNormalization()(top1)
 top1 = layers.LeakyReLU()(top1)
 
+top1 = layers.Dropout(0.2)(top1)
 top3 = layers.Dense(1)(top1)
 # Keine BN nach dem letzten Dense vor Sigmoid, da wir die Wahrscheinlichkeit direkt wollen
 top3 = layers.Activation('sigmoid', name='classification')(top3)
