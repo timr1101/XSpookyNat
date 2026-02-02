@@ -147,7 +147,7 @@ callback_list = [
 ]
 
 model.compile(
-    optimizer=optimizers.SGD(learning_rate=0.01, momentum=0.9),
+    optimizer=optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999),
     loss={'classification': losses.binary_crossentropy},
     metrics={'classification': [metrics.binary_accuracy]},
 )
