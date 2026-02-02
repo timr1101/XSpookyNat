@@ -148,10 +148,11 @@ callback_list = [
 
 model.compile(
     optimizer=optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999),
-    loss={'classification': losses.binary_crossentropy},
-    metrics={'classification': [metrics.binary_accuracy]},
+    loss=losses.binary_crossentropy,
+    metrics=[metrics.binary_accuracy],
 )
 
+class_label = class_label.astype('float32')
 history = model.fit(
     tensor_shuffled[:len(data)-N_VALIDATION-N_TESTING, :, :, :],
     class_label[:len(data)-N_VALIDATION-N_TESTING],
@@ -160,7 +161,7 @@ history = model.fit(
     callbacks=callback_list,
     validation_data=(
         tensor_shuffled[len(data)-N_VALIDATION-N_TESTING:len(data)-N_TESTING, :, :, :],
-        {'classification': class_label[len(data)-N_VALIDATION-N_TESTING:len(data)-N_TESTING]}
+        class_label[len(data)-N_VALIDATION-N_TESTING:len(data)-N_TESTING]
     ),
 )
 
