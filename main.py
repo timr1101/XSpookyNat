@@ -134,15 +134,15 @@ callback_list = [
     ),
     tf.keras.callbacks.ReduceLROnPlateau(
         monitor='val_loss',
-        factor=0.1,          # LR *= 0.1 bei Plateau (z.B. 0.01 -> 0.001 -> 0.0001)
-        patience=2,          # wie viele Epochen ohne Verbesserung warten
-        min_lr=1e-6,         # nicht kleiner als das
+        factor=0.2,          # LR *= 0.1 bei Plateau (z.B. 0.01 -> 0.001 -> 0.0001)
+        patience=6,          # wie viele Epochen ohne Verbesserung warten
+        min_lr=1e-7,         # nicht kleiner als das
         verbose=1
     ),
     # optional, aber oft sinnvoll:
     tf.keras.callbacks.EarlyStopping(
         monitor='val_loss',
-        patience=6,
+        patience=15,
         restore_best_weights=True,
         verbose=1
     )
@@ -158,8 +158,8 @@ class_label = class_label.astype('float32')
 history = model.fit(
     tensor_shuffled[:len(data)-N_VALIDATION-N_TESTING, :, :, :],
     class_label[:len(data)-N_VALIDATION-N_TESTING],
-    batch_size=125,
-    epochs=20,
+    batch_size=128,
+    epochs=100,
     callbacks=callback_list,
     validation_data=(
         tensor_shuffled[len(data)-N_VALIDATION-N_TESTING:len(data)-N_TESTING, :, :, :],
