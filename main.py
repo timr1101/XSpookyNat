@@ -184,4 +184,16 @@ confusion_matrix = sklearn_metrics.confusion_matrix(actual, seq_predictions)
 # Display the confusion matrix
 cm_display = sklearn_metrics.ConfusionMatrixDisplay(confusion_matrix=confusion_matrix, display_labels=[False, True])
 cm_display.plot()
+
+# Nach dem Training:
+plt.figure(figsize=(12, 4))
+plt.subplot(1, 2, 1)
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Val Loss')
+plt.legend(); plt.title('Loss Path')
+
+plt.subplot(1, 2, 2)
+plt.plot(history.history['binary_accuracy'], label='Train Acc')
+plt.plot(history.history['val_binary_accuracy'], label='Val Acc')
+plt.legend(); plt.title('Accuracy Path')
 plt.show()
