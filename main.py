@@ -6,7 +6,9 @@ from tensorflow.keras import models, layers, optimizers, losses, metrics, Input
 from tensorflow.keras.utils import plot_model
 from sklearn import metrics as sklearn_metrics
 
-SAMPLES = 500000
+SAMPLES = 500000 # per class
+N_VALIDATION = 10000
+N_TESTING = 10000
 
 ################################### 1 Data ###################################
 
@@ -79,84 +81,45 @@ model.summary()
 
 ################################### 2 Training ###################################
 
-# Compile the model
 callback_list = [
-                 tf.keras.callbacks.ModelCheckpoint(
-                     filepath = 'my_model.keras',
-                     monitor = 'val_loss',
-                     save_best_only = True,
-                 )
+    tf.keras.callbacks.ModelCheckpoint(
+        filepath='my_model.keras',
+        monitor='val_loss',
+        save_best_only=True,
+        verbose=1
+    ),
+    tf.keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss',
+        factor=0.1,          # LR *= 0.1 bei Plateau (z.B. 0.01 -> 0.001 -> 0.0001)
+        patience=2,          # wie viele Epochen ohne Verbesserung warten
+        min_lr=1e-6,         # nicht kleiner als das
+        verbose=1
+    ),
+    # optional, aber oft sinnvoll:
+    tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss',
+        patience=6,
+        restore_best_weights=True,
+        verbose=1
+    )
 ]
 
 model.compile(
-    optimizer = optimizers.SGD(
-        learning_rate = 0.01, momentum = 0.9,
+    optimizer=optimizers.SGD(learning_rate=0.01, momentum=0.9),
+    loss={'classification': losses.binary_crossentropy},
+    metrics={'classification': [metrics.binary_accuracy]},
+)
+
+history = model.fit(
+    tensor_shuffled[:len(data)-N_VALIDATION-N_TESTING, :, :, :],
+    {'classification': class_label[:len(data)-N_VALIDATION-N_TESTING]},
+    batch_size=125,
+    epochs=20,
+    callbacks=callback_list,
+    validation_data=(
+        tensor_shuffled[len(data)-N_VALIDATION-N_TESTING:len(data)-N_TESTING, :, :, :],
+        {'classification': class_label[len(data)-N_VALIDATION-N_TESTING:len(data)-N_TESTING]}
     ),
-    loss = {
-        'classification': losses.binary_crossentropy
-        },
-    metrics = {
-        'classification': metrics.binary_accuracy
-        }
-)
-
-history1 = model.fit(
-    tensor_shuffled[:len(data)-20000, :, :, :],
-    {'classification': class_label[:len(data)-20000]},
-    batch_size = 125,
-    epochs = 8,
-    callbacks = callback_list,
-    validation_data = (tensor_shuffled[len(data)-20000:len(data)-10000, :, :, :],
-                     {'classification': class_label[len(data)-20000:len(data)-10000]}
-                     ),
-)
-
-# First manual reduction in learning rate
-model.compile(
-    optimizer=optimizers.SGD(
-        learning_rate=0.001, momentum=0.9,
-    ),
-    loss = {
-        'classification': losses.binary_crossentropy
-        },
-    metrics = {
-        'classification': metrics.binary_accuracy
-        }
-)
-
-history2 = model.fit(
-    tensor_shuffled[:len(data)-20000, :, :, :],
-    {'classification': class_label[:len(data)-20000]},
-    batch_size = 125,
-    epochs = 4,
-    callbacks = callback_list,
-    validation_data = (tensor_shuffled[len(data)-20000:len(data)-10000, :, :, :],
-                     {'classification': class_label[len(data)-20000:len(data)-10000]}
-                     ),
-)
-
-# Second manual reduction in learning rate
-model.compile(
-    optimizer=optimizers.SGD(
-        learning_rate=0.0001, momentum=0.9,
-    ),
-    loss = {
-        'classification': losses.binary_crossentropy
-        },
-    metrics = {
-        'classification': metrics.binary_accuracy
-        }
-)
-
-history3 = model.fit(
-    tensor_shuffled[:len(data)-20000, :, :, :],
-    {'classification': class_label[:len(data)-20000]},
-    batch_size = 125,
-    epochs = 2,
-    callbacks = callback_list,
-    validation_data = (tensor_shuffled[len(data)-20000:len(data)-10000, :, :, :],
-                     {'classification': class_label[len(data)-20000:len(data)-10000]}
-                     ),
 )
 
 ################################### 3 Evaluation ###################################
@@ -165,11 +128,11 @@ history3 = model.fit(
 my_model = tf.keras.models.load_model("my_model.keras")
 
 # Evaluate the model using TensorFlow/Keras metrics
-my_model.evaluate(tensor_shuffled[len(data)-10000:len(data), :, :, :], {'classification': class_label[len(data)-10000:len(data)]})
+my_model.evaluate(tensor_shuffled[len(data)-N_TESTING:len(data), :, :, :], {'classification': class_label[len(data)-N_TESTING:len(data)]})
 
 # Make predictions and create a confusion matrix
-actual = class_label[990000:1000000]
-seq_predictions = my_model.predict(tensor_shuffled[990000:1000000, :, :])
+actual = class_label[len(data)-N_TESTING:len(data)]
+seq_predictions = my_model.predict(tensor_shuffled[len(data)-N_TESTING:len(data), :, :])
 seq_predictions = np.transpose(seq_predictions)[0]
 seq_predictions = list(map(lambda x: 0 if x < 0.5 else 1, seq_predictions))
 
