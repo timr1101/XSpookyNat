@@ -41,80 +41,80 @@ for i in range(SAMPLES):
 input_tensor = Input(shape=(4, 4, 2))
 
 # Layer 1
-layer1 = layers.Conv2D(64, 1)(input_tensor)
+layer1 = layers.Conv2D(96, 1)(input_tensor)
 #layer1 = layers.BatchNormalization()(layer1)
 layer1 = layers.LeakyReLU()(layer1)
 
 # Layer 2
-layer2 = layers.Conv2D(64, 1)(layer1)
+layer2 = layers.Conv2D(96, 1)(layer1)
 #ayer2 = layers.BatchNormalization()(layer2)
 layer2 = layers.LeakyReLU()(layer2)
 
 # Branch A
-branch_a = layers.Conv2D(256, 4)(layer2)
+branch_a = layers.Conv2D(384, 4)(layer2)
 #branch_a = layers.BatchNormalization()(branch_a)
 branch_a = layers.LeakyReLU()(branch_a)
-branch_a = layers.Conv2D(128, 1)(branch_a)
+branch_a = layers.Conv2D(192, 1)(branch_a)
 #branch_a = layers.BatchNormalization()(branch_a)
 branch_a = layers.LeakyReLU()(branch_a)
 
 # Branch B
-branch_b = layers.Conv2D(192, 3)(layer2)
+branch_b = layers.Conv2D(288, 3)(layer2)
 #branch_b = layers.BatchNormalization()(branch_b)
 branch_b = layers.LeakyReLU()(branch_b)
 
 # Layer 3 & 4
-layer3 = layers.Conv2D(128, 2)(layer2)
+layer3 = layers.Conv2D(192, 2)(layer2)
 #layer3 = layers.BatchNormalization()(layer3)
 layer3 = layers.LeakyReLU()(layer3)
-layer4 = layers.Conv2D(128, 1)(layer3)
+layer4 = layers.Conv2D(192, 1)(layer3)
 #layer4 = layers.BatchNormalization()(layer4)
 layer4 = layers.LeakyReLU()(layer4)
 
 # Branch C
-branch_c = layers.Conv2D(96, 3)(layer4)
+branch_c = layers.Conv2D(144, 3)(layer4)
 #branch_c = layers.BatchNormalization()(branch_c)
 branch_c = layers.LeakyReLU()(branch_c)
 
 # Layer 5 & Concatenate B
-layer5 = layers.Conv2D(128, 2)(layer4)
+layer5 = layers.Conv2D(192, 2)(layer4)
 #layer5 = layers.BatchNormalization()(layer5)
 layer5 = layers.LeakyReLU()(layer5)
 layer5 = layers.concatenate([layer5, branch_b], axis=-1)
 
 # Layer 6
-layer6 = layers.Conv2D(256, 1)(layer5)
+layer6 = layers.Conv2D(384, 1)(layer5)
 #layer6 = layers.BatchNormalization()(layer6)
 layer6 = layers.LeakyReLU()(layer6)
 
 # Layer 7 & Concatenate A
-layer7 = layers.Conv2D(256, 2)(layer6)
+layer7 = layers.Conv2D(384, 2)(layer6)
 #layer7 = layers.BatchNormalization()(layer7)
 layer7 = layers.LeakyReLU()(layer7)
 layer7 = layers.concatenate([layer7, branch_a], axis=-1)
 
 # Layer 8 & Concatenate C
-layer8 = layers.Conv2D(512, 1)(layer7)
+layer8 = layers.Conv2D(768, 1)(layer7)
 #layer8 = layers.BatchNormalization()(layer8)
 layer8 = layers.LeakyReLU()(layer8)
 layer8 = layers.concatenate([layer8, branch_c], axis=-1)
 
 # Layer 9 & 10
-layer9 = layers.Conv2D(512, 1)(layer8)
+layer9 = layers.Conv2D(768, 1)(layer8)
 #layer9 = layers.BatchNormalization()(layer9)
 layer9 = layers.LeakyReLU()(layer9)
-layer10 = layers.Conv2D(512, 1)(layer9)
+layer10 = layers.Conv2D(768, 1)(layer9)
 #layer10 = layers.BatchNormalization()(layer10)
 layer10 = layers.LeakyReLU()(layer10)
 
 # Top / Output
 top1 = layers.Flatten()(layer10)
-top1 = layers.Dropout(0.4)(top1)
-top1 = layers.Dense(512)(top1)
+top1 = layers.Dropout(0.5)(top1)
+top1 = layers.Dense(768)(top1)
 #top1 = layers.BatchNormalization()(top1)
 top1 = layers.LeakyReLU()(top1)
 
-top1 = layers.Dropout(0.2)(top1)
+top1 = layers.Dropout(0.3)(top1)
 top3 = layers.Dense(1)(top1)
 # Keine BN nach dem letzten Dense vor Sigmoid, da wir die Wahrscheinlichkeit direkt wollen
 top3 = layers.Activation('sigmoid', name='classification')(top3)
