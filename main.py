@@ -13,7 +13,8 @@ N_TESTING = 10000
 ################################### 1 Data ###################################
 
 # Download from https://www.kaggle.com/datasets/alikookani/quantangle1
-data = pd.read_csv(r'C:\Users\natan\XSpookyNat\data\data.csv')
+data_path = "path/data.csv"
+data = pd.read_csv(data_path)
 
 # Convert the DataFrame to a NumPy array for further processing
 data = np.array(data)
@@ -28,7 +29,7 @@ for i in range(len(data)):
 # Reshaping to 3D tensors
 tensor = vector.reshape(len(data), 4, 4, 2)
 
-# Shuffle the dataset
+# "Shuffle" the dataset
 tensor_shuffled = np.empty([len(data), 4, 4, 2], dtype=float)
 class_label = np.ones(len(data)).astype('int')
 for i in range(SAMPLES):
@@ -116,7 +117,7 @@ top1 = layers.LeakyReLU()(top1)
 
 top1 = layers.Dropout(0.3)(top1)
 top3 = layers.Dense(1)(top1)
-# Keine BN nach dem letzten Dense vor Sigmoid, da wir die Wahrscheinlichkeit direkt wollen
+
 top3 = layers.Activation('sigmoid', name='classification')(top3)
 
 model = models.Model(input_tensor, top3)
@@ -134,12 +135,11 @@ callback_list = [
     ),
     tf.keras.callbacks.ReduceLROnPlateau(
         monitor='val_loss',
-        factor=0.2,          # LR *= 0.1 bei Plateau (z.B. 0.01 -> 0.001 -> 0.0001)
-        patience=6,          # wie viele Epochen ohne Verbesserung warten
-        min_lr=1e-7,         # nicht kleiner als das
+        factor=0.2,
+        patience=6,
+        min_lr=1e-7,
         verbose=1
     ),
-    # optional, aber oft sinnvoll:
     tf.keras.callbacks.EarlyStopping(
         monitor='val_loss',
         patience=15,
@@ -188,7 +188,7 @@ confusion_matrix = sklearn_metrics.confusion_matrix(actual, seq_predictions)
 cm_display = sklearn_metrics.ConfusionMatrixDisplay(confusion_matrix=confusion_matrix, display_labels=[False, True])
 cm_display.plot()
 
-# Nach dem Training:
+# Loss & Accuracy of Training and Validation vs. epoch (learning curve)
 plt.figure(figsize=(12, 4))
 plt.subplot(1, 2, 1)
 plt.plot(history.history['loss'], label='Train Loss')
