@@ -115,6 +115,10 @@ top1 = layers.Dense(768)(top1)
 top1 = layers.LeakyReLU()(top1)
 
 top1 = layers.Dropout(0.3)(top1)
+top1 = layers.Dense(256)(top1)
+top1 = layers.LeakyReLU()(top1)
+
+top1 = layers.Dropout(0.2)(top1)
 top3 = layers.Dense(1)(top1)
 # Keine BN nach dem letzten Dense vor Sigmoid, da wir die Wahrscheinlichkeit direkt wollen
 top3 = layers.Activation('sigmoid', name='classification')(top3)
@@ -200,3 +204,6 @@ plt.plot(history.history['binary_accuracy'], label='Train Acc')
 plt.plot(history.history['val_binary_accuracy'], label='Val Acc')
 plt.legend(); plt.title('Accuracy Path')
 plt.show()
+
+# jede Convolutional Größe + erstes dense x1.5
+# dann dropout höher - 2 verschiedene dropout raten
